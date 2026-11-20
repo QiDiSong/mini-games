@@ -5,3 +5,4 @@
 | 游戏 | 源码 | 在线试玩 |
 | --- | --- | --- |
 | 扫雷 · 随手一局 | [minesweeper](./minesweeper/) | [开始玩](https://suishou-saolei-2c1uz.qidisong.chatgpt.site) |
+| 接通 · Net | [net](./net/) | 下载后打开 `net/index.html` |

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10171d">
+  <title>接通 · Net</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="engine.js"></script>
+  <script defer src="game.js"></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><h1>接通</h1><p>旋转线路，让每一格通电。</p></div>
+      <output id="progress" aria-live="polite"></output>
+    </header>
+    <div class="workspace">
+      <section class="play" aria-label="棋盘">
+        <div class="board-frame"><div id="board"></div></div>
+        <div class="legend"><span class="sample power"></span>电源 <span class="sample"></span>通电 <span class="sample loop"></span>闭环</div>
+      </section>
+      <aside>
+        <section class="panel">
+          <label for="preset">棋盘</label>
+          <select id="preset"></select>
+          <div id="custom" hidden>
+            <label>宽度 <input id="width" type="number" min="2" max="20" value="9"></label>
+            <label>高度 <input id="height" type="number" min="2" max="20" value="9"></label>
+            <label><input id="wrap" type="checkbox"> 边缘相通</label>
+            <label><input id="unique" type="checkbox" checked> 确保唯一解</label>
+            <label>挡板比例 % <input id="density" type="number" min="0" max="100" value="0"></label>
+          </div>
+          <button id="new" class="primary">新开一局</button>
+          <div class="actions">
+            <button id="undo">撤销</button><button id="redo">重做</button>
+            <button id="restart">重开</button><button id="solve">揭晓答案</button>
+          </div>
+          <output id="message" aria-live="polite"></output>
+        </section>
+        <section class="panel">
+          <label for="mode">点击格子</label>
+          <select id="mode">
+            <option value="-1">逆时针旋转</option><option value="1">顺时针旋转</option>
+            <option value="2">转 180°</option><option value="lock">锁定／解锁</option>
+          </select>
+          <details>
+            <summary>玩法和键盘</summary>
+            <p>接口需成对接上。环绕棋盘两侧按同一行或同一列接通。全盘通电且无闭环即通关。</p>
+            <p>右键顺时针，Shift + 左键或中键锁定。方向键选格，A / D / F 旋转，S 锁定，J 打乱未锁定格。Ctrl + 方向键切换电源，Shift + 方向键平移环绕棋盘。</p>
+            <label><input id="lockedLoops" type="checkbox"> 仅标记已锁定格组成的闭环</label>
+          </details>
+        </section>
+        <section class="panel">
+          <details>
+            <summary>关卡 ID、种子与存档</summary>
+            <label for="gameID">关卡 ID</label>
+            <input id="gameID" spellcheck="false">
+            <div class="actions"><button id="import">载入 ID</button><button id="shareID">复制关卡链接</button></div>
+            <label for="seed">随机种子</label>
+            <input id="seed" spellcheck="false" placeholder="输入种子以复现关卡">
+            <div class="actions"><button id="seedNew">按种子出题</button><button id="shareSeed">复制种子链接</button></div>
+            <div class="actions"><button id="save">下载存档</button><button id="load">导入存档</button></div>
+            <input id="file" type="file" accept=".json,application/json" hidden>
+          </details>
+        </section>
+      </aside>
+    </div>
+  </main>
+</body>
+</html>

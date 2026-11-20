@@ -1,0 +1,67 @@
+:root {
+  color-scheme: dark;
+  --background: #10171d;
+  --panel: #19232b;
+  --line: #32434a;
+  --text: #edf4ef;
+  --muted: #a2b5b7;
+  --power: #b7ee77;
+  --wire: #56dbc1;
+  --warn: #ff9378;
+  font-family: "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--background); color: var(--text); }
+main { max-width: 960px; margin: auto; padding: clamp(16px, 4vw, 46px); }
+header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); margin-bottom: 20px; padding-bottom: 18px; }
+h1 { margin: 0; font-size: clamp(2rem, 6vw, 3.7rem); letter-spacing: .09em; }
+p { margin: 8px 0; color: var(--muted); line-height: 1.55; }
+#progress { color: var(--power); white-space: nowrap; font-size: clamp(.9rem, 3vw, 1.25rem); font-variant-numeric: tabular-nums; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 250px); gap: 18px; }
+.board-frame { border: 1px solid var(--line); border-radius: 16px; padding: clamp(5px, 1.5vw, 14px); background: var(--panel); overflow: auto; }
+#board { display: grid; border: 1px solid var(--line); min-width: var(--board-min); }
+.tile { position: relative; display: block; aspect-ratio: 1; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; outline-offset: -3px; box-shadow: inset 0 0 0 .5px var(--line); background: #152129; color: #6b8192; touch-action: manipulation; }
+.tile:hover { background: #24343a; }
+.tile:focus-visible { z-index: 1; }
+.tile.active { color: var(--wire); }
+.tile.locked { background: #263b32; }
+.tile .port { position: absolute; background: currentColor; pointer-events: none; }
+.tile .right, .tile .left { top: 46%; width: 50%; height: 8%; }
+.tile .right { right: 0; }
+.tile .left { left: 0; }
+.tile .up, .tile .down { left: 46%; width: 8%; height: 50%; }
+.tile .up { top: 0; }
+.tile .down { bottom: 0; }
+.tile .error { color: var(--warn); }
+.tile .node { position: absolute; inset: 36%; background: currentColor; border-radius: 50%; }
+.tile .source { background: var(--power); border-radius: 15%; box-shadow: 0 0 0 2px #10171d; transform: rotate(45deg); }
+.tile .stop { position: absolute; background: #f3bc65; z-index: 1; pointer-events: none; }
+.tile .stop.right, .tile .stop.left { width: 9%; top: 31%; height: 38%; }
+.tile .stop.up, .tile .stop.down { height: 9%; left: 31%; width: 38%; }
+.legend { display: flex; align-items: center; gap: 7px; padding: 12px 4px; color: var(--muted); font-size: .85rem; }
+.sample { width: 9px; height: 9px; margin-left: 8px; border-radius: 50%; background: var(--wire); }
+.sample.power { margin-left: 0; background: var(--power); transform: rotate(45deg); border-radius: 2px; }
+.sample.loop { background: var(--warn); }
+aside { display: grid; align-content: start; gap: 10px; }
+.panel { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 12px; }
+.panel label { display: block; margin-bottom: 5px; color: var(--muted); font-size: .88rem; }
+button, input, select { font: inherit; color: var(--text); }
+button, select, input:not([type="checkbox"]) { border: 1px solid var(--line); border-radius: 7px; background: #10191f; padding: 9px; }
+button { cursor: pointer; }
+button:disabled { opacity: .38; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--power); }
+select, input:not([type="checkbox"]), .primary { width: 100%; }
+.primary { margin-top: 8px; background: var(--power); color: #17231a; border: 0; font-weight: 700; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 7px; }
+.actions button { font-size: .84rem; }
+#custom { margin-top: 8px; }
+#custom input[type="number"] { width: 70px; }
+#message:not(:empty) { display: block; margin-top: 8px; color: var(--power); font-size: .88rem; }
+details { margin-top: 8px; font-size: .88rem; }
+details input { margin-bottom: 5px; }
+details label { margin-top: 8px; }
+summary { cursor: pointer; }
+[hidden] { display: none !important; }
+@media (max-width: 660px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+}
