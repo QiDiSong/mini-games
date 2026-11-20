@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f5f8fc">
+<title>扫雷 · 随手一局</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f8fc;color:#182d46;font:16px system-ui,sans-serif}
+main{width:min(100%,470px);margin:auto;padding:clamp(14px,5vw,28px)}
+h1{margin:0 0 19px;font-size:2.65rem;line-height:1.05}
+.stats{display:flex;justify-content:space-between;margin-bottom:10px;font-weight:700;font-variant-numeric:tabular-nums}
+#board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;padding:5px;background:#e4edf6;border:1px solid #c7d7e6;border-radius:12px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
+button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid #1d56a6;outline-offset:1px}
+.cell{min-width:0;aspect-ratio:1;padding:0;display:grid;place-items:center;border:1px solid #b7cbdf;border-radius:5px;background:#d6e4f2;color:#20364c;font-size:clamp(15px,5vw,23px);font-weight:800;touch-action:pan-y;-webkit-touch-callout:none}
+.cell.open{background:white;border-color:#d4dfe9}.cell.flag,.cell.mine{background:#fce8e3;color:#9e2e20}
+p{text-align:center;margin:12px 0 0}#status{font-weight:650;min-height:1.5em}.help{color:#465d76;font-size:.875rem}
+#reset{width:100%;min-height:44px;margin-top:12px;border:1px solid #a9bed3;border-radius:9px;background:white;color:#182d46;font-weight:700}
+</style>
+</head>
+<body><main>
+<h1>扫雷</h1>
+<div class="stats"><span id="count"></span><span id="time" aria-label="已用时间"></span></div>
+<div id="board" role="group" aria-label="8 行 8 列扫雷棋盘"></div>
+<p class="help">轻点翻格 · 长按插旗</p>
+<p id="status" role="status"></p>
+<button id="reset" type="button">重新开始</button>
+</main>
+<script>
+const board = document.querySelector('#board');
+const storageKey = 'suishou-saolei-v1';
+const size = 8;
+const mineCount = 10;
+const colors = ['','#164a9c','#17663b','#a23123','#5b348c','#874805','#126468','#24252e','#764264'];
+function blank() { return { mines:[], opened:[], flags:[], elapsed:0, result:'' }; }
+function restore() {
+  try {
+    const data = JSON.parse(localStorage.getItem(storageKey));
+    if (!data || !['','won','lost'].includes(data.result) || !Number.isFinite(data.elapsed) || data.elapsed < 0) return blank();
+    for (const list of [data.mines,data.opened,data.flags]) {
+      if (!Array.isArray(list) || new Set(list).size !== list.length || list.some(i => !Number.isInteger(i) || i < 0 || i >= 64)) return blank();
+    }
+    if (![0,mineCount].includes(data.mines.length)) return blank();
+    return data;
+  } catch { return blank(); }
+}
+let state = restore();
+let anchor = 0;
+let gesture;
+let suppressUntil = 0;
+let touchClick;
+let focused = 0;
+
+function neighbors(index) {
+  const row = Math.floor(index / size), col = index % size;
+  const list = [];
+  for (let y=Math.max(0,row-1); y<=Math.min(size-1,row+1); y++) {
+    for (let x=Math.max(0,col-1); x<=Math.min(size-1,col+1); x++) {
+      if (y * size + x !== index) list.push(y * size + x);
+    }
+  }
+  return list;
+}
+const nearby = Array.from({length:64},(_,i) => neighbors(i));
+const buttons = nearby.map((_,i) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.dataset.index = i;
+  board.append(button);
+  return button;
+});
+function elapsed() { return state.elapsed + (anchor ? Date.now()-anchor : 0); }
+function drawTime() {
+  const seconds = Math.floor(elapsed()/1000);
+  document.querySelector('#time').textContent = [Math.floor(seconds/60),seconds%60].map(n => String(n).padStart(2,'0')).join(':');
+}
+function save() {
+  try { localStorage.setItem(storageKey,JSON.stringify({...state,elapsed:elapsed()})); } catch {}
+}
+function pause() {
+  state.elapsed = elapsed();
+  anchor = 0;
+  save();
+}
+function resume() {
+  if (!document.hidden && state.mines.length && !state.result && !anchor) anchor = Date.now();
+}
+function draw() {
+  buttons.forEach((button,i) => {
+    const open = state.opened.includes(i);
+    const flag = state.flags.includes(i);
+    const mine = state.result === 'lost' && state.mines.includes(i);
+    const wrong = state.result === 'lost' && flag && !mine;
+    const number = open ? nearby[i].filter(index => state.mines.includes(index)).length : 0;
+    const symbol = mine ? (flag ? '⚑' : '✹') : wrong ? '×' : flag ? '⚑' : number || '';
+    button.className = 'cell' + (open ? ' open' : '') + (flag ? ' flag' : '') + (mine ? ' mine' : '');
+    button.textContent = symbol;
+    button.style.color = colors[number];
+    button.tabIndex = i === focused ? 0 : -1;
+    const label = mine ? '地雷' : wrong ? '标记错误' : flag ? '已插旗' : open ? (number ? '周围有 '+number+' 颗雷' : '空白') : '未翻开';
+    button.setAttribute('aria-label','第 '+(Math.floor(i/size)+1)+' 行第 '+(i%size+1)+' 列，'+label);
+  });
+  document.querySelector('#count').textContent = '剩余雷数 ' + (mineCount-state.flags.length);
+  document.querySelector('#status').textContent = {
+    won:'通关！你找到了所有安全格。',
+    lost:'踩雷了！可以重新开始。',
+    '':state.mines.length ? '找出所有安全格。' : '首次翻格安全。'
+  }[state.result];
+  drawTime();
+}
+function layMines(first) {
+  const safe = new Set([first,...nearby[first]]);
+  const choices = buttons.map((_,i) => i).filter(i => !safe.has(i));
+  for (let i=0; i<mineCount; i++) {
+    const pick = i + Math.floor(Math.random() * (choices.length-i));
+    [choices[i],choices[pick]] = [choices[pick],choices[i]];
+  }
+  state.mines = choices.slice(0,mineCount);
+  resume();
+}
+function reveal(i) {
+  if (state.result || state.flags.includes(i) || state.opened.includes(i)) return;
+  if (!state.mines.length) layMines(i);
+  if (state.mines.includes(i)) {
+    state.result = 'lost';
+  } else {
+    const pending = [i];
+    while (pending.length) {
+      const next = pending.pop();
+      if (state.opened.includes(next) || state.flags.includes(next) || state.mines.includes(next)) continue;
+      state.opened.push(next);
+      if (!nearby[next].some(index => state.mines.includes(index))) pending.push(...nearby[next]);
+    }
+    if (state.opened.length === buttons.length-mineCount) {
+      state.result = 'won';
+      state.flags = [...state.mines];
+    }
+  }
+  if (state.result) pause(); else save();
+  draw();
+}
+function flag(i) {
+  if (state.result || state.opened.includes(i)) return;
+  const at = state.flags.indexOf(i);
+  if (at < 0) state.flags.push(i); else state.flags.splice(at,1);
+  save();
+  draw();
+}
+function indexOf(event) { return Number(event.target.closest('.cell')?.dataset.index ?? -1); }
+function cancelPress() {
+  if (gesture) clearTimeout(gesture.timer);
+  gesture = null;
+}
+board.addEventListener('pointerdown',event => {
+  const index = indexOf(event);
+  if (event.pointerType !== 'touch') { touchClick = null; return; }
+  cancelPress();
+  if (index < 0 || !event.isPrimary) return;
+  const press = {index,id:event.pointerId,x:event.clientX,y:event.clientY,held:false};
+  gesture = press;
+  suppressUntil = Date.now()+900;
+  press.timer = setTimeout(() => { press.held = true; flag(index); },450);
+});
+board.addEventListener('pointermove',event => {
+  if (gesture?.id === event.pointerId && Math.hypot(event.clientX-gesture.x,event.clientY-gesture.y)>10) cancelPress();
+});
+board.addEventListener('pointerup',event => {
+  if (event.pointerType !== 'touch') return;
+  const press = gesture?.id === event.pointerId ? gesture : null;
+  touchClick = {index:indexOf(event),until:Date.now()+700};
+  if (!press) return;
+  cancelPress();
+  suppressUntil = Date.now()+700;
+  if (!press.held) reveal(press.index);
+});
+board.addEventListener('pointercancel',event => { if (gesture?.id === event.pointerId) cancelPress(); });
+board.addEventListener('click',event => {
+  const i = indexOf(event);
+  if (i < 0 || event.pointerType === 'touch' ||
+      (event.detail && touchClick?.index === i && Date.now() <= touchClick.until)) return;
+  reveal(i);
+});
+board.addEventListener('contextmenu',event => {
+  const i = indexOf(event);
+  if (i < 0) return;
+  event.preventDefault();
+  if (!gesture && Date.now() > suppressUntil && event.pointerType !== 'touch') flag(i);
+});
+board.addEventListener('focusin',event => {
+  const i = indexOf(event);
+  if (i < 0) return;
+  buttons[focused].tabIndex = -1;
+  focused = i;
+  buttons[focused].tabIndex = 0;
+});
+board.addEventListener('keydown',event => {
+  const i = indexOf(event);
+  if (i<0) return;
+  if (event.key.toLowerCase() === 'f') { event.preventDefault(); flag(i); return; }
+  const steps = {ArrowUp:-size,ArrowDown:size,ArrowLeft:-1,ArrowRight:1};
+  if (!Object.hasOwn(steps,event.key)) return;
+  event.preventDefault();
+  if ((event.key==='ArrowLeft' && i%size===0) || (event.key==='ArrowRight' && i%size===size-1)) return;
+  buttons[i+steps[event.key]]?.focus();
+});
+document.querySelector('#reset').addEventListener('click',() => {
+  if (state.mines.length && !state.result && !confirm('结束当前这局，重新开始？')) return;
+  cancelPress();
+  state = blank();
+  anchor = 0;
+  save();
+  draw();
+});
+document.addEventListener('visibilitychange',() => { if (document.hidden) pause(); else resume(); });
+window.addEventListener('pagehide',pause);
+window.addEventListener('pageshow',resume);
+setInterval(drawTime,250);
+setInterval(() => { if (anchor) save(); },1000);
+resume();
+draw();
+</script>
+</body></html>
