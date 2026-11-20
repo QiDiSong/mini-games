@@ -65,3 +65,4 @@ summary { cursor: pointer; }
 @media (max-width: 660px) {
   .workspace { grid-template-columns: minmax(0, 1fr); }
 }
+.tile .rotor { position: absolute; inset: 0; pointer-events: none; }

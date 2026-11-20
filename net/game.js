@@ -80,15 +80,19 @@
       const live = active.has(i);
       button.className = 'tile' + (live ? ' active' : '') + (locked[i] ? ' locked' : '');
       const parts = [];
+      const rotor = button.querySelector('.rotor') ?? span('rotor');
+      const wires = [];
       const ports = [];
       directions.forEach((d, k) => {
         if (tiles[i] & d) {
           ports.push(coordinateNames[k]);
-          parts.push(span('port ' + portClasses[k] + (marked[i] & d ? ' error' : '')));
+          wires.push(span('port ' + portClasses[k] + (marked[i] & d ? ' error' : '')));
         }
         if (puzzle.barriers[i] & d) parts.push(span('stop ' + portClasses[k]));
       });
-      parts.push(span('node' + (source === i ? ' source' : '')));
+      wires.push(span('node' + (source === i ? ' source' : '')));
+      rotor.replaceChildren(...wires);
+      parts.unshift(rotor);
       button.replaceChildren(...parts);
       const y = Math.floor(position / puzzle.width) + 1;
       const x = position % puzzle.width + 1;
@@ -117,7 +121,17 @@
       const next = rotate(tiles[i], Number(action));
       if (next !== tiles[i]) {
         tiles[i] = next;
+        const rotor = buttons[position].querySelector('.rotor');
+        const transform = getComputedStyle(rotor).transform;
+        const matrix = new DOMMatrix(transform === 'none' ? undefined : transform);
+        const previousAngle = Math.atan2(matrix.b, matrix.a) * 180 / Math.PI;
+        rotor.getAnimations().forEach(animation => animation.cancel());
         record({tiles, revealed: false});
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          rotor.animate([
+            {transform: 'rotate(' + (previousAngle - 90 * Number(action)) + 'deg)'}, {transform: 'rotate(0deg)'},
+          ], {duration: 155, easing: 'cubic-bezier(.2,.65,.35,1)'});
+        }
       }
     }
   }
