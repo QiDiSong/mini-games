@@ -15,6 +15,7 @@
 
   let puzzle, history, cursor, buttons, lastStatus;
   const state = () => history[cursor];
+  const revealOrigin = () => state().revealed ? state().beforeReveal : undefined;
   const initial = p => ({tiles: p.tiles.slice(), locked: Array(p.size).fill(false),
     source: p.center, x: 0, y: 0, revealed: false});
   const notify = message => { get('message').textContent = message; };
@@ -101,6 +102,9 @@
     });
     get('progress').textContent = won ? (revealed ? '已揭晓答案' : '全部接通') + ' · ' +
       puzzle.size + '/' + puzzle.size : '通电 ' + active.size + '/' + puzzle.size;
+    const canReturn = revealOrigin() !== undefined;
+    get('solve').textContent = canReturn ? '回到揭晓前' : '揭晓答案';
+    get('solve').disabled = won && !canReturn;
     get('undo').disabled = cursor === 0;
     get('redo').disabled = cursor + 1 === history.length;
   }
@@ -237,10 +241,12 @@
   get('redo').onclick = () => changeCursor(cursor + 1);
   get('restart').onclick = () => record(initial(puzzle));
   get('solve').onclick = () => report(() => {
+    const origin = revealOrigin();
+    if (origin !== undefined) return changeCursor(origin);
     if (lastStatus.won) return;
     const result = puzzle.solution ? {solution: puzzle.solution} : solve(puzzle);
     if (!result.solution) throw new Error(result.exhausted ? '求解达到搜索上限。' : '这道关卡无解。');
-    record({tiles: result.solution.slice(), revealed: true});
+    record({tiles: result.solution.slice(), revealed: true, beforeReveal: cursor});
   });
   get('lockedLoops').onchange = render;
   get('import').onclick = () => report(() => build(decode(get('gameID').value)));
@@ -248,7 +254,8 @@
   get('shareID').onclick = () => share('id', encode(puzzle));
   get('shareSeed').onclick = () => share('seed', puzzle.seed && seedID(puzzle, puzzle.seed));
   get('save').onclick = () => {
-    const blob = new Blob([JSON.stringify({version: 1, id: encode(puzzle), state: state()})],
+    const saved = {...state(), beforeReveal: undefined};
+    const blob = new Blob([JSON.stringify({version: 1, id: encode(puzzle), state: saved})],
       {type: 'application/json'});
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -273,7 +280,7 @@
           saved.locked.length !== p.size || !saved.locked.every(value => typeof value === 'boolean') ||
           !Number.isInteger(saved.source) || saved.source < 0 || saved.source >= p.size ||
           ![saved.x, saved.y].every(Number.isInteger)) throw new Error('存档格式无效。');
-      build(p, {...saved, revealed: saved.revealed === true});
+      build(p, {...saved, revealed: saved.revealed === true, beforeReveal: undefined});
     } catch (error) { notify(error.message); }
   };
 
